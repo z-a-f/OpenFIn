@@ -225,6 +225,63 @@ def test_telegram_relay_agent_events_from_daemon(tmp_path: Path) -> None:
     assert client.sent == [("42", "agent-001 assistant_text:\ndone from agent")]
 
 
+def test_telegram_relay_suppresses_duplicate_completion_echoes(tmp_path: Path) -> None:
+    daemon, meta = make_daemon(tmp_path)
+    client = FakeTelegramClient()
+    bot = TelegramBot(
+        daemon=daemon,
+        client=client,
+        config=TelegramConfig(
+            token="token",
+            allowed_user_id="42",
+            chat_id="42",
+        ),
+    )
+    daemon.add_event_sink(bot.relay_agent_event)
+
+    daemon.handle(
+        {
+            "type": "session_event",
+            "session_id": meta.id,
+            "event": AgentEvent(
+                kind="assistant_text",
+                text="final answer",
+                raw={},
+                ts="2026-06-14T12:00:00Z",
+                session_id="native-1",
+            ).to_dict(),
+        }
+    )
+    daemon.handle(
+        {
+            "type": "session_event",
+            "session_id": meta.id,
+            "event": AgentEvent(
+                kind="turn_done",
+                text="final answer",
+                raw={},
+                ts="2026-06-14T12:00:01Z",
+                session_id="native-1",
+            ).to_dict(),
+        }
+    )
+    daemon.handle(
+        {
+            "type": "session_event",
+            "session_id": meta.id,
+            "event": AgentEvent(
+                kind="turn_done",
+                text="done.",
+                raw={},
+                ts="2026-06-14T12:00:02Z",
+                session_id="native-1",
+            ).to_dict(),
+        }
+    )
+
+    assert client.sent == [("42", "agent-001 assistant_text:\nfinal answer")]
+
+
 def test_telegram_chunks_long_messages() -> None:
     chunks = chunk_text("abcdef", limit=2)
 

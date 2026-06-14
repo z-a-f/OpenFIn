@@ -12,6 +12,7 @@ from typing import Protocol
 import typer
 
 from openfin.agent_adapter import AgentAdapter
+from openfin.agent_render import render_agent_event
 from openfin.agent_store import (
     AgentEvent,
     AgentSessionMeta,
@@ -211,6 +212,7 @@ def run_agent_session(
         daemon_call(lambda client: client.update_status(meta.id, "busy"))
         last_session_id = resume
         had_error = False
+        assistant_texts: list[str] = []
         for event in adapter.run_turn(
             project=project,
             prompt=prompt,
@@ -225,9 +227,11 @@ def run_agent_session(
                 meta = store.update_meta(meta.id, native_session_id=last_session_id)
             if event.kind == "error":
                 had_error = True
-            rendered = render_agent_event(event)
+            rendered = render_agent_event(event, assistant_texts=assistant_texts)
             if rendered:
                 output_func(rendered)
+            if event.kind == "assistant_text" and event.text.strip():
+                assistant_texts.append(event.text)
         meta = store.update_meta(meta.id, status="error" if had_error else "idle")
         daemon_call(lambda client: client.update_status(meta.id, meta.status))
         return last_session_id
@@ -300,24 +304,6 @@ def run_agent_session(
     daemon_call(lambda client: client.unregister_session(meta.id, status=meta.status))
     write_agent_memory_log(store, meta)
     return meta
-
-
-def render_agent_event(event: AgentEvent) -> str:
-    if event.kind == "assistant_text":
-        return event.text
-    if event.kind == "tool_use":
-        return event.text
-    if event.kind == "tool_result":
-        return event.text
-    if event.kind == "needs_input":
-        return event.text
-    if event.kind == "error":
-        return f"error: {event.text}"
-    if event.kind == "turn_done":
-        return event.text
-    if event.kind == "progress":
-        return event.text
-    return event.text
 
 
 def write_agent_memory_log(store: AgentSessionStore, meta: AgentSessionMeta) -> None:

@@ -10,6 +10,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from openfin.agent_render import render_agent_event
 from openfin.agent_store import AgentEvent
 from openfin.daemon import DaemonSession, OpenFindDaemon
 
@@ -116,6 +117,7 @@ class TelegramBot:
         self.client = client
         self.config = config
         self._sleep = sleep_func
+        self._relayed_assistant_texts: dict[str, list[str]] = {}
 
     def handle_update(self, update: dict[str, Any]) -> None:
         if not self._is_authorized_update(update):
@@ -159,7 +161,10 @@ class TelegramBot:
     def relay_agent_event(self, session: DaemonSession, event: AgentEvent) -> None:
         if event.kind not in RELAY_EVENT_KINDS:
             return
-        text = event.text.strip()
+        assistant_texts = self._relayed_assistant_texts.setdefault(session.id, [])
+        text = render_agent_event(event, assistant_texts=assistant_texts).strip()
+        if event.kind == "assistant_text" and event.text.strip():
+            assistant_texts.append(event.text)
         if not text:
             return
         self._send(self.config.chat_id, f"{session.id} {event.kind}:\n{text}")

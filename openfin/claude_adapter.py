@@ -235,6 +235,8 @@ def content_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
 def is_lifecycle_event(event_type: str) -> bool:
     return event_type in {
+        "system",
+        "rate_limit_event",
         "thread.started",
         "turn.started",
         "item.started",

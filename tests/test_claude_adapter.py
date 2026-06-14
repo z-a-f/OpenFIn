@@ -121,6 +121,12 @@ def test_claude_event_normalization_handles_nested_tool_messages() -> None:
 
 def test_claude_event_normalization_handles_lifecycle_and_done_events() -> None:
     started = normalize_claude_event({"type": "thread.started", "session_id": "s1"})
+    system = normalize_claude_event(
+        {"type": "system", "subtype": "init", "session_id": "s1"}
+    )
+    rate_limit = normalize_claude_event(
+        {"type": "rate_limit_event", "session_id": "s1"}
+    )
     empty_item = normalize_claude_event(
         {"type": "item.completed", "session_id": "s1", "item": {"id": "i1"}}
     )
@@ -141,6 +147,10 @@ def test_claude_event_normalization_handles_lifecycle_and_done_events() -> None:
 
     assert started.kind == "progress"
     assert started.text == ""
+    assert system.kind == "progress"
+    assert system.text == ""
+    assert rate_limit.kind == "progress"
+    assert rate_limit.text == ""
     assert empty_item.kind == "progress"
     assert empty_item.text == ""
     assert final_item.kind == "assistant_text"
