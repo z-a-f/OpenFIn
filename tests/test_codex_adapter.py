@@ -137,12 +137,51 @@ def test_codex_event_normalization_handles_messages_tools_and_results() -> None:
     assert done.session_id == "thread-1"
 
 
+def test_codex_event_normalization_handles_real_lifecycle_and_done_events() -> None:
+    thread = normalize_codex_event({"type": "thread.started", "thread_id": "thread-1"})
+    turn = normalize_codex_event({"type": "turn.started", "thread_id": "thread-1"})
+    item_started = normalize_codex_event(
+        {"type": "item.started", "thread_id": "thread-1"}
+    )
+    empty_item = normalize_codex_event(
+        {"type": "item.completed", "thread_id": "thread-1", "item": {"id": "i1"}}
+    )
+    final_item = normalize_codex_event(
+        {
+            "type": "item.completed",
+            "thread_id": "thread-1",
+            "item": {"id": "i2", "text": "Final from item"},
+        }
+    )
+    done = normalize_codex_event(
+        {
+            "type": "done",
+            "thread_id": "thread-1",
+            "last_agent_message": "Final answer",
+        }
+    )
+
+    assert thread.kind == "progress"
+    assert thread.text == ""
+    assert turn.kind == "progress"
+    assert turn.text == ""
+    assert item_started.kind == "progress"
+    assert item_started.text == ""
+    assert empty_item.kind == "progress"
+    assert empty_item.text == ""
+    assert final_item.kind == "assistant_text"
+    assert final_item.text == "Final from item"
+    assert done.kind == "turn_done"
+    assert done.text == "Final answer"
+    assert done.session_id == "thread-1"
+
+
 def test_codex_adapter_streams_events_and_captures_session_id(tmp_path: Path) -> None:
     process = FakeProcess(
         [
             '{"type":"thread.started","thread_id":"thread-abc"}',
             '{"type":"item.completed","item":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Working"}]}}',
-            '{"type":"turn.completed","thread_id":"thread-abc","last_message":"Finished"}',
+            '{"type":"done","thread_id":"thread-abc","last_agent_message":"Finished"}',
         ]
     )
     calls: list[tuple[list[str], Path]] = []
@@ -161,6 +200,8 @@ def test_codex_adapter_streams_events_and_captures_session_id(tmp_path: Path) ->
         "assistant_text",
         "turn_done",
     ]
+    assert events[0].text == ""
+    assert events[-1].text == "Finished"
     assert events[-1].session_id == "thread-abc"
     assert adapter.native_session_id == "thread-abc"
     assert calls[0][1] == tmp_path

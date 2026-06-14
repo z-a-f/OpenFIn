@@ -178,6 +178,9 @@ def normalize_codex_event(payload: dict[str, Any]) -> AgentEvent:
     elif role == "tool":
         kind = "tool_result"
         text = extract_text(item_data) or extract_text(payload) or "Tool result"
+    elif event_type == "item.completed" and extract_text(item_data):
+        kind = "assistant_text"
+        text = extract_text(item_data)
     elif is_error_event(event_type):
         kind = "error"
         text = extract_text(payload) or str(payload.get("error") or "Codex error")
@@ -193,7 +196,11 @@ def normalize_codex_event(payload: dict[str, Any]) -> AgentEvent:
         text = extract_text(payload) or "Tool result"
     else:
         kind = "progress"
-        text = extract_text(payload) or event_type
+        text = (
+            ""
+            if is_lifecycle_event(event_type)
+            else extract_text(payload) or event_type
+        )
 
     return AgentEvent(
         kind=kind,
@@ -213,6 +220,7 @@ def is_turn_done_event(event_type: str) -> bool:
         "turn.completed",
         "turn.complete",
         "turn.done",
+        "done",
         "task.completed",
         "task.complete",
         "result",
@@ -231,6 +239,15 @@ def is_tool_result_event(event_type: str) -> bool:
         token in event_type
         for token in ("tool_result", "tool_output", "function_call_output")
     )
+
+
+def is_lifecycle_event(event_type: str) -> bool:
+    return event_type in {
+        "thread.started",
+        "turn.started",
+        "item.started",
+        "item.completed",
+    }
 
 
 def extract_session_id(payload: dict[str, Any]) -> str:
@@ -266,11 +283,17 @@ def extract_text(value: Any) -> str:
         "text",
         "output_text",
         "message",
+        "last_agent_message",
         "last_message",
+        "final_output",
+        "final_message",
+        "final_response",
+        "response",
         "output",
         "result",
         "content",
         "summary",
+        "item",
     ):
         text = extract_text(value.get(key))
         if text:

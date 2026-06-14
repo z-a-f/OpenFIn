@@ -162,9 +162,12 @@ def normalize_claude_event(payload: dict[str, Any]) -> AgentEvent:
         else:
             kind = "progress"
             text = extract_text(payload) or event_type
-    elif event_type == "result":
+    elif event_type in {"result", "done"}:
         kind = "turn_done"
-        text = extract_text(payload) or str(payload.get("result") or "")
+        text = extract_text(payload) or str(payload.get("result") or "done")
+    elif event_type == "item.completed" and extract_text(payload):
+        kind = "assistant_text"
+        text = extract_text(payload)
     elif event_type == "needs_input":
         kind = "needs_input"
         text = extract_text(payload)
@@ -173,7 +176,11 @@ def normalize_claude_event(payload: dict[str, Any]) -> AgentEvent:
         text = extract_text(payload) or str(payload.get("error") or "Claude error")
     else:
         kind = "progress"
-        text = extract_text(payload) or event_type
+        text = (
+            ""
+            if is_lifecycle_event(event_type)
+            else extract_text(payload) or event_type
+        )
     return AgentEvent(
         kind=kind,
         text=text,
@@ -226,11 +233,40 @@ def content_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in content if isinstance(item, dict)]
 
 
-def extract_text(payload: dict[str, Any]) -> str:
-    for key in ("text", "result", "message"):
-        value = payload.get(key)
-        if isinstance(value, str):
-            return value
+def is_lifecycle_event(event_type: str) -> bool:
+    return event_type in {
+        "thread.started",
+        "turn.started",
+        "item.started",
+        "item.completed",
+    }
+
+
+def extract_text(payload: Any) -> str:
+    if isinstance(payload, str):
+        return payload
+    if isinstance(payload, list):
+        return "\n".join(
+            part for part in (extract_text(item) for item in payload) if part
+        )
+    if not isinstance(payload, dict):
+        return ""
+    for key in (
+        "text",
+        "result",
+        "message",
+        "last_agent_message",
+        "last_message",
+        "final_output",
+        "final_message",
+        "final_response",
+        "response",
+        "output",
+        "item",
+    ):
+        text = extract_text(payload.get(key))
+        if text:
+            return text
     message = payload.get("message")
     if isinstance(message, dict):
         content = message.get("content")

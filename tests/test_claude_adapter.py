@@ -119,11 +119,42 @@ def test_claude_event_normalization_handles_nested_tool_messages() -> None:
     assert result.text == "file contents"
 
 
+def test_claude_event_normalization_handles_lifecycle_and_done_events() -> None:
+    started = normalize_claude_event({"type": "thread.started", "session_id": "s1"})
+    empty_item = normalize_claude_event(
+        {"type": "item.completed", "session_id": "s1", "item": {"id": "i1"}}
+    )
+    final_item = normalize_claude_event(
+        {
+            "type": "item.completed",
+            "session_id": "s1",
+            "item": {"id": "i2", "text": "Final from item"},
+        }
+    )
+    done = normalize_claude_event(
+        {
+            "type": "done",
+            "session_id": "s1",
+            "final_output": "Final answer",
+        }
+    )
+
+    assert started.kind == "progress"
+    assert started.text == ""
+    assert empty_item.kind == "progress"
+    assert empty_item.text == ""
+    assert final_item.kind == "assistant_text"
+    assert final_item.text == "Final from item"
+    assert done.kind == "turn_done"
+    assert done.text == "Final answer"
+    assert done.session_id == "s1"
+
+
 def test_claude_adapter_streams_events_and_captures_session_id(tmp_path: Path) -> None:
     process = FakeProcess(
         [
             '{"type":"assistant","message":{"content":[{"type":"text","text":"Working"}]}}',
-            '{"type":"result","result":"Finished","session_id":"native-abc"}',
+            '{"type":"done","final_output":"Finished","session_id":"native-abc"}',
         ]
     )
     calls: list[tuple[list[str], Path]] = []
