@@ -23,7 +23,12 @@ def list_agent_sessions() -> None:
 
 
 @agents_app.command("status")
-def agent_status(session_id: str) -> None:
+def agent_status(
+    session_id: str = typer.Argument(
+        ...,
+        help="OpenFin agent session id to inspect, e.g. agent-20260614-120000-abcd1234.",
+    ),
+) -> None:
     """Show saved agent session metadata."""
     meta = load_agent_session_or_error(session_id)
     for key, value in meta.to_dict().items():
@@ -32,8 +37,15 @@ def agent_status(session_id: str) -> None:
 
 @agents_app.command("show")
 def show_agent_session(
-    session_id: str,
-    last: int = typer.Option(20, "--last", help="Number of transcript events to show."),
+    session_id: str = typer.Argument(
+        ...,
+        help="OpenFin agent session id whose transcript should be shown.",
+    ),
+    last: int = typer.Option(
+        20,
+        "--last",
+        help="Number of most recent transcript events to print.",
+    ),
 ) -> None:
     """Show a saved agent transcript."""
     store = AgentSessionStore(OpenFinStore.from_env().root)

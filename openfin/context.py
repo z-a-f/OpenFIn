@@ -9,10 +9,25 @@ from openfin.ui import console
 
 
 def context(
-    profile: str = typer.Argument("default"),
-    topic: str | None = typer.Option(None, "--for"),
-    copy: bool = typer.Option(False, "--copy"),
-    budget: int | None = typer.Option(None, "--budget"),
+    profile: str = typer.Argument(
+        "default",
+        help="Context profile from profiles.yaml, such as default, code, or admin.",
+    ),
+    topic: str | None = typer.Option(
+        None,
+        "--for",
+        help="Topic to search for and include as extra context hits.",
+    ),
+    copy: bool = typer.Option(
+        False,
+        "--copy",
+        help="Copy the rendered context pack to the clipboard instead of only printing it.",
+    ),
+    budget: int | None = typer.Option(
+        None,
+        "--budget",
+        help="Warn when the rough token estimate exceeds this number.",
+    ),
 ) -> None:
     """Assemble an AI-ready context pack."""
     store = OpenFinStore.from_env()

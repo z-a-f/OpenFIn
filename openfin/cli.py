@@ -51,7 +51,10 @@ def main(
     run: str | None = typer.Option(
         None,
         "--run",
-        help="Run an agent adapter through OpenFin, e.g. `f --run claude ...`.",
+        help=(
+            "Run an agent adapter through OpenFin and log the transcript; "
+            "supports `claude` with --model, --resume, --profile, and --for."
+        ),
         callback=_run_option_callback,
         is_eager=True,
     ),

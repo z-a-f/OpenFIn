@@ -55,9 +55,20 @@ def status() -> None:
 
 @index_app.command("search")
 def search_index_command(
-    query: str,
-    tag: str | None = typer.Option(None, "--tag"),
-    since: str | None = typer.Option(None, "--since"),
+    query: str = typer.Argument(
+        ...,
+        help="Text to search for in the derived SQLite FTS index.",
+    ),
+    tag: str | None = typer.Option(
+        None,
+        "--tag",
+        help="Only return indexed lines containing this tag. Leading # is optional.",
+    ),
+    since: str | None = typer.Option(
+        None,
+        "--since",
+        help="Only return dated hits on or after this date, e.g. '2026-06-01'.",
+    ),
 ) -> None:
     """Search the derived SQLite FTS index."""
     from openfin.search import parse_since_date, print_hits

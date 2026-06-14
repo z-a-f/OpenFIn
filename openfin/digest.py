@@ -23,9 +23,14 @@ DeliveryTarget = Literal["none", "desktop", "telegram", "both"]
 
 
 def digest(
-    kind: str = typer.Argument("morning"),
+    kind: str = typer.Argument(
+        "morning",
+        help="Digest kind to render: morning or evening.",
+    ),
     send: str = typer.Option(
-        "none", "--send", help="Delivery target: none, desktop, telegram, or both."
+        "none",
+        "--send",
+        help="Delivery target after rendering: none, desktop, telegram, or both.",
     ),
 ) -> None:
     """Render a morning or evening brief."""

@@ -565,7 +565,7 @@ def daemon_main(
     socket_path: Path | None = typer.Option(
         None,
         "--socket",
-        help="Override the Unix socket path.",
+        help="Unix socket path to listen on instead of OPENFIN_HOME/agents/openfind.sock.",
     ),
 ) -> None:
     serve_daemon(socket_path)

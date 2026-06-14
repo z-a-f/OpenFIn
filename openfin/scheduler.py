@@ -37,16 +37,24 @@ class ScheduleSpec:
 @schedule_app.command("show")
 def show_schedule(
     target: str = typer.Option(
-        "auto", "--target", help="auto, cron, systemd, or launchd."
+        "auto",
+        "--target",
+        help="Scheduler backend to preview: auto, cron, systemd, or launchd.",
     ),
     send: str = typer.Option(
-        "desktop", "--send", help="Delivery target used by scheduled digests."
+        "desktop",
+        "--send",
+        help="Delivery target for scheduled digests: desktop, telegram, both, or none.",
     ),
     morning: str = typer.Option(
-        "09:00", "--morning", help="Morning digest time in HH:MM."
+        "09:00",
+        "--morning",
+        help="Morning digest time in 24-hour HH:MM format.",
     ),
     evening: str = typer.Option(
-        "17:30", "--evening", help="Evening digest time in HH:MM."
+        "17:30",
+        "--evening",
+        help="Evening digest time in 24-hour HH:MM format.",
     ),
 ) -> None:
     """Show the schedule that would be installed."""
@@ -59,16 +67,24 @@ def show_schedule(
 @schedule_app.command("install")
 def install_schedule(
     target: str = typer.Option(
-        "auto", "--target", help="auto, cron, systemd, or launchd."
+        "auto",
+        "--target",
+        help="Scheduler backend to install: auto, cron, systemd, or launchd.",
     ),
     send: str = typer.Option(
-        "desktop", "--send", help="Delivery target used by scheduled digests."
+        "desktop",
+        "--send",
+        help="Delivery target for scheduled digests: desktop, telegram, both, or none.",
     ),
     morning: str = typer.Option(
-        "09:00", "--morning", help="Morning digest time in HH:MM."
+        "09:00",
+        "--morning",
+        help="Morning digest time in 24-hour HH:MM format.",
     ),
     evening: str = typer.Option(
-        "17:30", "--evening", help="Evening digest time in HH:MM."
+        "17:30",
+        "--evening",
+        help="Evening digest time in 24-hour HH:MM format.",
     ),
 ) -> None:
     """Install scheduled morning and evening digests."""
@@ -87,7 +103,9 @@ def install_schedule(
 @schedule_app.command("uninstall")
 def uninstall_schedule(
     target: str = typer.Option(
-        "auto", "--target", help="auto, cron, systemd, or launchd."
+        "auto",
+        "--target",
+        help="Scheduler backend to remove from: auto, cron, systemd, or launchd.",
     ),
 ) -> None:
     """Remove scheduled OpenFin digest reminders."""

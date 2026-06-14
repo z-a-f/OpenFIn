@@ -11,11 +11,24 @@ from openfin.ui import console
 
 
 def search(
-    query: str,
-    tag: str | None = typer.Option(None, "--tag"),
-    since: str | None = typer.Option(None, "--since"),
+    query: str = typer.Argument(
+        ...,
+        help="Text to search for across OpenFin memory files.",
+    ),
+    tag: str | None = typer.Option(
+        None,
+        "--tag",
+        help="Only return lines containing this tag. Leading # is optional.",
+    ),
+    since: str | None = typer.Option(
+        None,
+        "--since",
+        help="Only return dated hits on or after this date, e.g. 'last week'.",
+    ),
     use_index: bool = typer.Option(
-        False, "--index", help="Search the derived SQLite FTS index."
+        False,
+        "--index",
+        help="Search the derived SQLite FTS index instead of scanning files directly.",
     ),
 ) -> None:
     """Search across charter, now, tasks, inbox, and log files."""

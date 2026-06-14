@@ -11,7 +11,12 @@ from openfin.task import build_task
 from openfin.ui import console
 
 
-def capture(text: str) -> None:
+def capture(
+    text: str = typer.Argument(
+        ...,
+        help="Raw thought, note, request, or reminder to append to inbox.md.",
+    ),
+) -> None:
     """Append a raw line to inbox.md."""
     store = OpenFinStore.from_env()
     store.append_inbox(text)
@@ -19,8 +24,16 @@ def capture(text: str) -> None:
 
 
 def idea(
-    text: str,
-    tags: str | None = typer.Option(None, "--tag", "-t"),
+    text: str = typer.Argument(
+        ...,
+        help="Idea or durable note to append to the current monthly log.",
+    ),
+    tags: str | None = typer.Option(
+        None,
+        "--tag",
+        "-t",
+        help="Comma-separated tags to attach, stored as #tags in the log.",
+    ),
 ) -> None:
     """Append an idea to the current month's log."""
     store = OpenFinStore.from_env()

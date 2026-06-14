@@ -173,11 +173,31 @@ def find_stale_tasks(tasks: list[dict[str, Any]], today: date) -> list[str]:
 
 
 def add(
-    text: str,
-    priority: str = typer.Option("P2", "--priority", "-p"),
-    due: str | None = typer.Option(None, "--due", "-d"),
-    tags: str | None = typer.Option(None, "--tag", "-t"),
-    owner: str = typer.Option("me", "--owner", "-o"),
+    text: str = typer.Argument(..., help="Task title to add to tasks.yaml."),
+    priority: str = typer.Option(
+        "P2",
+        "--priority",
+        "-p",
+        help="Priority bucket: P0 urgent, P1 high, P2 normal, P3 low.",
+    ),
+    due: str | None = typer.Option(
+        None,
+        "--due",
+        "-d",
+        help="Due date, e.g. 'today', 'tomorrow', 'Friday', or '2026-06-30'.",
+    ),
+    tags: str | None = typer.Option(
+        None,
+        "--tag",
+        "-t",
+        help="Comma-separated tags such as 'code,infra'. Leading # is optional.",
+    ),
+    owner: str = typer.Option(
+        "me",
+        "--owner",
+        "-o",
+        help="Person responsible for the task.",
+    ),
 ) -> None:
     """Create a structured task."""
     store = OpenFinStore.from_env()
@@ -191,10 +211,27 @@ def add(
 
 
 def list_tasks(
-    status: str | None = typer.Option(None, "--status"),
-    tag: str | None = typer.Option(None, "--tag"),
-    owner: str | None = typer.Option(None, "--owner"),
-    priority: str | None = typer.Option(None, "--priority", "-p"),
+    status: str | None = typer.Option(
+        None,
+        "--status",
+        help="Filter by status: open, doing, blocked, done, or dropped.",
+    ),
+    tag: str | None = typer.Option(
+        None,
+        "--tag",
+        help="Filter to tasks with this tag. Leading # is optional.",
+    ),
+    owner: str | None = typer.Option(
+        None,
+        "--owner",
+        help="Filter to tasks assigned to this owner.",
+    ),
+    priority: str | None = typer.Option(
+        None,
+        "--priority",
+        "-p",
+        help="Filter by priority: P0, P1, P2, or P3.",
+    ),
 ) -> None:
     """List tasks with optional filters."""
     store = OpenFinStore.from_env()
@@ -212,7 +249,9 @@ def list_tasks(
     render_tasks(sort_tasks(tasks), title="TASKS")
 
 
-def start_task(task_id: str) -> None:
+def start_task(
+    task_id: str = typer.Argument(..., help="Task id to mark doing, e.g. t-0001."),
+) -> None:
     """Mark a task as doing."""
     store = OpenFinStore.from_env()
     tasks = store.load_tasks()
@@ -223,7 +262,9 @@ def start_task(task_id: str) -> None:
     console.print(f"Doing {task_id}: {task['title']}")
 
 
-def done(task_id: str) -> None:
+def done(
+    task_id: str = typer.Argument(..., help="Task id to mark done, e.g. t-0001."),
+) -> None:
     """Mark a task done and append a #done log entry."""
     store = OpenFinStore.from_env()
     tasks = store.load_tasks()
@@ -236,7 +277,10 @@ def done(task_id: str) -> None:
     console.print(f"Done {task_id}: {task['title']}")
 
 
-def block(task_id: str, why: str) -> None:
+def block(
+    task_id: str = typer.Argument(..., help="Task id to mark blocked, e.g. t-0001."),
+    why: str = typer.Argument(..., help="Short reason the task is blocked."),
+) -> None:
     """Mark a task blocked with a reason."""
     store = OpenFinStore.from_env()
     tasks = store.load_tasks()
@@ -251,7 +295,9 @@ def block(task_id: str, why: str) -> None:
     console.print(f"Blocked {task_id}: {why}")
 
 
-def drop(task_id: str) -> None:
+def drop(
+    task_id: str = typer.Argument(..., help="Task id to drop, e.g. t-0001."),
+) -> None:
     """Mark a task dropped and append a #dropped log entry."""
     store = OpenFinStore.from_env()
     tasks = store.load_tasks()
@@ -264,7 +310,15 @@ def drop(task_id: str) -> None:
     console.print(f"Dropped {task_id}: {task['title']}")
 
 
-def touch(task_id: str, note: str | None = typer.Option(None, "--note", "-n")) -> None:
+def touch(
+    task_id: str = typer.Argument(..., help="Task id to record progress on."),
+    note: str | None = typer.Option(
+        None,
+        "--note",
+        "-n",
+        help="Optional progress note to store on the task and append to the log.",
+    ),
+) -> None:
     """Record progress on a task without changing its status."""
     store = OpenFinStore.from_env()
     tasks = store.load_tasks()
@@ -280,9 +334,14 @@ def touch(task_id: str, note: str | None = typer.Option(None, "--note", "-n")) -
 
 
 def assign(
-    task_id: str,
-    owner: str,
-    note: str | None = typer.Option(None, "--note", "-n"),
+    task_id: str = typer.Argument(..., help="Task id to assign, e.g. t-0001."),
+    owner: str = typer.Argument(..., help="New owner responsible for the task."),
+    note: str | None = typer.Option(
+        None,
+        "--note",
+        "-n",
+        help="Optional handoff note to store on the task and append to the log.",
+    ),
 ) -> None:
     """Assign a task owner and append an #assign log entry."""
     normalized_owner = owner.strip()
@@ -307,13 +366,40 @@ def assign(
 
 
 def edit(
-    task_id: str,
-    title: str | None = typer.Option(None, "--title"),
-    priority: str | None = typer.Option(None, "--priority", "-p"),
-    due: str | None = typer.Option(None, "--due", "-d"),
-    status: str | None = typer.Option(None, "--status"),
-    tags: str | None = typer.Option(None, "--tag", "-t"),
-    notes: str | None = typer.Option(None, "--notes"),
+    task_id: str = typer.Argument(..., help="Task id to edit, e.g. t-0001."),
+    title: str | None = typer.Option(
+        None,
+        "--title",
+        help="Replace the task title.",
+    ),
+    priority: str | None = typer.Option(
+        None,
+        "--priority",
+        "-p",
+        help="Set priority: P0, P1, P2, or P3.",
+    ),
+    due: str | None = typer.Option(
+        None,
+        "--due",
+        "-d",
+        help="Set due date, e.g. 'tomorrow', 'Friday', or '2026-06-30'.",
+    ),
+    status: str | None = typer.Option(
+        None,
+        "--status",
+        help="Set status: open, doing, blocked, done, or dropped.",
+    ),
+    tags: str | None = typer.Option(
+        None,
+        "--tag",
+        "-t",
+        help="Replace tags with a comma-separated list. Leading # is optional.",
+    ),
+    notes: str | None = typer.Option(
+        None,
+        "--notes",
+        help="Replace the task notes field.",
+    ),
 ) -> None:
     """Edit task fields with flags, or open the task YAML in $EDITOR."""
     store = OpenFinStore.from_env()
