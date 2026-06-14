@@ -3,7 +3,7 @@ name = "openfin"
 version = "0.1.0"
 description = "OpenFin: a local-first founder helper CLI for project memory, tasks, search, and context packs."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "dateparser>=1.2.0",
     "pyperclip>=1.9.0",
@@ -18,7 +18,11 @@ openfin = "openfin.cli:app"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.2.0",
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.15.1",
 ]
 
 [build-system]
