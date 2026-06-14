@@ -3,8 +3,22 @@
 OpenFin is a local-first founder helper CLI for keeping project memory, tasks,
 captures, and AI context packs in plain text.
 
+It also wraps agent CLI sessions through `f --run`, records normalized
+transcripts, and can relay session updates through the local `openfind` daemon
+and Telegram.
 
-## Development
+## Documentation
+
+- [Usage](docs/usage.md): day-to-day commands and workflows.
+- [Architecture](docs/architecture.md): storage, modules, daemon routing, and
+  agent instrumentation.
+- [SDK](docs/sdk.md): Python APIs and extension points.
+- [Development](docs/development.md): setup, tests, TDD, and contribution
+  workflow.
+- [Operations](docs/operations.md): daemon, Telegram, schedules, backups, and
+  security.
+
+## Install
 
 ```bash
 uv sync
@@ -15,7 +29,7 @@ uv run f --help
 Set `OPENFIN_HOME` to choose the storage directory. If it is not set, OpenFin
 uses `~/.openfin`.
 
-## First Run
+## Quick Start
 
 ```bash
 uv run f init
@@ -31,6 +45,16 @@ uv run f context code --for "profiles"
 uv run f today
 uv run f compact --deep-dedup
 ```
+
+## Core Concepts
+
+- `charter.md`: durable mission, stack, decisions, and non-goals.
+- `now.md`: current priorities and active context.
+- `tasks.yaml`: structured tasks with priority, owner, due date, status, tags,
+  and recheck state.
+- `inbox.md`: raw capture buffer for later triage.
+- `log/YYYY-MM.md`: append-only dated log entries.
+- `profiles.yaml`: context-pack slicing rules.
 
 ## Agent Sessions
 
@@ -52,7 +76,7 @@ daemon is started automatically when possible; you can also run it directly:
 uv run openfind
 ```
 
-Telegram relay is enabled when `openfind` sees:
+Telegram relay is enabled when `openfind` sees these variables:
 
 ```bash
 export OPENFIN_TELEGRAM_BOT_TOKEN=...
@@ -85,3 +109,14 @@ uv run f schedule install --send desktop
 Telegram delivery requires `OPENFIN_TELEGRAM_BOT_TOKEN` and
 `OPENFIN_TELEGRAM_CHAT_ID`. Desktop delivery uses `notify-send` on Linux and
 `osascript` on macOS.
+
+## Development
+
+```bash
+uv sync
+uv run pytest
+uv run pytest --cov
+uv run ruff check .
+```
+
+See [docs/development.md](docs/development.md) for the contributor workflow.
