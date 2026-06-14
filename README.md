@@ -31,6 +31,7 @@ uv run f index rebuild
 uv run f search "profiles" --index
 uv run f context code --for "profiles"
 uv run f today
+uv run f compact --deep-dedup
 ```
 
 ## Scheduled Digests
