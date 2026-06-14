@@ -61,6 +61,34 @@ def test_task_lifecycle_and_today_view(tmp_path: Path) -> None:
     assert "#done t-0001 Ship Phase 1" in log_text
 
 
+def test_assign_updates_owner_filters_and_logs(tmp_path: Path) -> None:
+    created = run_cli(tmp_path, ["add", "Share investor follow-up"])
+    assert created.exit_code == 0, created.output
+
+    assigned = run_cli(
+        tmp_path,
+        ["assign", "t-0001", "alex", "--note", "take point this week"],
+    )
+    alex_tasks = run_cli(tmp_path, ["ls", "--owner", "alex"])
+    my_tasks = run_cli(tmp_path, ["ls", "--owner", "me"])
+
+    assert assigned.exit_code == 0, assigned.output
+    assert alex_tasks.exit_code == 0, alex_tasks.output
+    assert my_tasks.exit_code == 0, my_tasks.output
+
+    tasks = load_tasks(tmp_path)
+    log_text = "\n".join(
+        read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md")
+    )
+    assert tasks[0]["owner"] == "alex"
+    assert "take point this week" in tasks[0]["notes"]
+    assert "Share investor follow-up" in alex_tasks.output
+    assert "Share investor follow-up" not in my_tasks.output
+    assert (
+        "#assign t-0001 alex Share investor follow-up take point this week" in log_text
+    )
+
+
 def test_capture_idea_and_search(tmp_path: Path) -> None:
     captured = run_cli(tmp_path, ["in", "ping design folks about onboarding"])
 

@@ -21,6 +21,6 @@ semantic help behind the same proposal-only boundary:
 
 ## Cofounder memory sync
 
-`f assign` records ownership locally. Authorized-subset sync is deferred until the
-collaboration workflow is clearer, likely as a profile-based export/import bundle
-before any networked sync.
+`f assign` records ownership locally and writes an audit line to the log.
+Authorized-subset sync is deferred until the collaboration workflow is clearer,
+likely as a profile-based export/import bundle before any networked sync.

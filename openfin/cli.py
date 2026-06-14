@@ -13,6 +13,7 @@ from openfin.search import search
 from openfin.system import init
 from openfin.task import (
     add,
+    assign,
     block,
     done,
     drop,
@@ -30,6 +31,7 @@ app = typer.Typer(help="OpenFin founder helper CLI.")
 app.command()(init)
 app.command("in")(capture)
 app.command()(add)
+app.command()(assign)
 app.command()(idea)
 app.command("ls")(list_tasks)
 app.command()(search)

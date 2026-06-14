@@ -279,6 +279,33 @@ def touch(task_id: str, note: str | None = typer.Option(None, "--note", "-n")) -
     console.print(f"Touched {task_id}: {task['title']}")
 
 
+def assign(
+    task_id: str,
+    owner: str,
+    note: str | None = typer.Option(None, "--note", "-n"),
+) -> None:
+    """Assign a task owner and append an #assign log entry."""
+    normalized_owner = owner.strip()
+    if not normalized_owner:
+        raise typer.BadParameter("owner cannot be empty")
+
+    store = OpenFinStore.from_env()
+    tasks = store.load_tasks()
+    task = find_task(tasks, task_id)
+    task["owner"] = normalized_owner
+    if note:
+        prior_notes = task.get("notes") or ""
+        addition = f"Assigned {today_date().isoformat()} to {normalized_owner}: {note}"
+        task["notes"] = f"{prior_notes}\n{addition}".strip()
+    update_task_timestamp(task)
+    store.save_tasks(tasks)
+    note_text = f" {note}" if note else ""
+    store.append_log_entry(
+        f"#assign {task_id} {normalized_owner} {task['title']}{note_text}"
+    )
+    console.print(f"Assigned {task_id} to {normalized_owner}: {task['title']}")
+
+
 def edit(
     task_id: str,
     title: str | None = typer.Option(None, "--title"),
