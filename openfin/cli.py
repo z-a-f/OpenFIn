@@ -7,6 +7,7 @@ from openfin.context import context
 from openfin.digest import digest
 from openfin.idea import capture, idea, triage
 from openfin.review import review
+from openfin.scheduler import schedule_app
 from openfin.search import search
 from openfin.system import init
 from openfin.task import (
@@ -42,3 +43,4 @@ app.command()(context)
 app.command()(digest)
 app.command()(triage)
 app.command()(compact)
+app.add_typer(schedule_app, name="schedule")

@@ -7,6 +7,9 @@ import yaml
 from typer.testing import CliRunner
 
 from openfin.cli import app
+from openfin.digest import render_digest
+from openfin.scheduler import remove_cron_block
+from openfin.storage import OpenFinStore
 from openfin.storage import dump_yaml, read_text, write_text_atomic
 
 
@@ -93,7 +96,7 @@ def test_context_profile_filters_sections_tasks_and_topic_hits(tmp_path: Path) -
         "## Key decisions\n"
         "- Plain text is canonical.\n"
         "## Non-goals\n"
-        "- No API layer in Phase 1.\n"
+        "- No API layer in Phase 1.\n",
     )
     write_text_atomic(
         home / "profiles.yaml",
@@ -106,12 +109,14 @@ def test_context_profile_filters_sections_tasks_and_topic_hits(tmp_path: Path) -
         "  charter_sections: [Stack, Key decisions, Non-goals]\n"
         "  task_tags: [code, eng, infra]\n"
         "  log_tags: [decision]\n"
-        "  max_log_lines: 10\n"
+        "  max_log_lines: 10\n",
     )
 
     code_task = run_cli(tmp_path, ["add", "Refactor quant arch", "-t", "code"])
     admin_task = run_cli(tmp_path, ["add", "Email investor update", "-t", "investors"])
-    decision = run_cli(tmp_path, ["idea", "quant arch uses plain files", "-t", "decision"])
+    decision = run_cli(
+        tmp_path, ["idea", "quant arch uses plain files", "-t", "decision"]
+    )
 
     assert code_task.exit_code == 0, code_task.output
     assert admin_task.exit_code == 0, admin_task.output
@@ -131,7 +136,9 @@ def test_context_profile_filters_sections_tasks_and_topic_hits(tmp_path: Path) -
 def test_overdue_view_flags_old_tasks(tmp_path: Path) -> None:
     yesterday = (date.today() - timedelta(days=1)).isoformat()
 
-    created = run_cli(tmp_path, ["add", "Follow up on pilot", "-d", yesterday, "-p", "P0"])
+    created = run_cli(
+        tmp_path, ["add", "Follow up on pilot", "-d", yesterday, "-p", "P0"]
+    )
 
     assert created.exit_code == 0, created.output
 
@@ -184,7 +191,9 @@ def test_review_commit_writes_recheck_and_quiets_next_run(tmp_path: Path) -> Non
 
     tasks = load_tasks(tmp_path)
     assert tasks[0]["recheck"] == expected_recheck
-    log_text = "\n".join(read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md"))
+    log_text = "\n".join(
+        read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md")
+    )
     assert f"#commit t-0001 recheck {expected_recheck}" in log_text
 
     followup_review = run_cli(tmp_path, ["review"])
@@ -218,7 +227,9 @@ def test_archived_task_ids_are_not_reused_and_done_log_is_not_duplicated(
     assert added.exit_code == 0, added.output
     assert "t-0002" in added.output
 
-    log_text = "\n".join(read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md"))
+    log_text = "\n".join(
+        read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md")
+    )
     assert log_text.count("#done t-0001 Old finished task") == 1
 
 
@@ -234,7 +245,7 @@ def test_evening_digest_only_shows_closed_today(tmp_path: Path) -> None:
         f"## {yesterday.isoformat()}\n\n"
         "- 18:00 #done t-0001 Done yesterday\n\n"
         f"## {today.isoformat()}\n\n"
-        "- 18:00 #done t-0002 Done today\n"
+        "- 18:00 #done t-0002 Done today\n",
     )
 
     digest = run_cli(tmp_path, ["digest", "evening"])
@@ -242,6 +253,75 @@ def test_evening_digest_only_shows_closed_today(tmp_path: Path) -> None:
     assert digest.exit_code == 0, digest.output
     assert "Done today" in digest.output
     assert "Done yesterday" not in digest.output
+
+
+def test_digest_renderer_is_shared_plain_text(tmp_path: Path) -> None:
+    created = run_cli(tmp_path, ["add", "Digest task", "-d", date.today().isoformat()])
+    assert created.exit_code == 0, created.output
+
+    store = OpenFinStore(openfin_home(tmp_path))
+    rendered = render_digest(store, "morning")
+    cli_digest = run_cli(tmp_path, ["digest", "morning"])
+
+    assert cli_digest.exit_code == 0, cli_digest.output
+    assert "MORNING DIGEST" in rendered
+    assert "Digest task" in rendered
+    assert rendered in cli_digest.output
+
+
+def test_digest_telegram_delivery_requires_credentials(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["digest", "morning", "--send", "telegram"],
+        env={"OPENFIN_HOME": str(openfin_home(tmp_path))},
+    )
+
+    assert result.exit_code == 1, result.output
+    assert "OPENFIN_TELEGRAM_BOT_TOKEN" in result.output
+    assert "OPENFIN_TELEGRAM_CHAT_ID" in result.output
+
+
+def test_schedule_show_renders_cron_without_installing(tmp_path: Path) -> None:
+    shown = run_cli(
+        tmp_path,
+        [
+            "schedule",
+            "show",
+            "--target",
+            "cron",
+            "--send",
+            "both",
+            "--morning",
+            "08:05",
+            "--evening",
+            "18:30",
+        ],
+    )
+
+    assert shown.exit_code == 0, shown.output
+    assert "OPENFIN_DIGEST_BEGIN" in shown.output
+    assert "5 08 * * *" in shown.output
+    assert "30 18 * * *" in shown.output
+    assert "digest morning --send both" in shown.output
+    assert str(openfin_home(tmp_path)) in shown.output
+
+
+def test_cron_block_removal_preserves_user_entries() -> None:
+    existing = "\n".join(
+        [
+            "0 7 * * * echo keep",
+            "# OPENFIN_DIGEST_BEGIN",
+            "0 9 * * * old openfin",
+            "# OPENFIN_DIGEST_END",
+            "0 22 * * * echo also-keep",
+        ]
+    )
+
+    cleaned = remove_cron_block(existing)
+
+    assert "echo keep" in cleaned
+    assert "echo also-keep" in cleaned
+    assert "old openfin" not in cleaned
 
 
 def test_compact_redundancy_requires_old_or_overdue_shared_tag(tmp_path: Path) -> None:
@@ -296,7 +376,9 @@ def test_task_yaml_preserves_unicode_for_human_readability(tmp_path: Path) -> No
     raw = read_text(openfin_home(tmp_path) / "tasks.yaml")
     raw_bytes = (openfin_home(tmp_path) / "tasks.yaml").read_bytes()
     inbox_bytes = (openfin_home(tmp_path) / "inbox.md").read_bytes()
-    log_bytes = b"".join(path.read_bytes() for path in (openfin_home(tmp_path) / "log").glob("*.md"))
+    log_bytes = b"".join(
+        path.read_bytes() for path in (openfin_home(tmp_path) / "log").glob("*.md")
+    )
     assert "\\u2014" not in raw
     assert title.encode("utf-8") in raw_bytes
     assert title.encode("utf-8") in inbox_bytes
@@ -337,6 +419,8 @@ def test_triage_task_idea_drop_branches_and_rewrites_inbox(tmp_path: Path) -> No
     tasks = load_tasks(tmp_path)
     assert tasks[0]["title"] == "turn first capture into task"
 
-    log_text = "\n".join(read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md"))
+    log_text = "\n".join(
+        read_text(path) for path in (openfin_home(tmp_path) / "log").glob("*.md")
+    )
     assert "#idea turn second capture into idea" in log_text
     assert read_text(openfin_home(tmp_path) / "inbox.md") == ""

@@ -29,3 +29,16 @@ uv run f search "profiles"
 uv run f context code --for "profiles"
 uv run f today
 ```
+
+## Scheduled Digests
+
+```bash
+uv run f digest morning --send desktop
+uv run f digest evening --send telegram
+uv run f schedule show --target cron --send both
+uv run f schedule install --send desktop
+```
+
+Telegram delivery requires `OPENFIN_TELEGRAM_BOT_TOKEN` and
+`OPENFIN_TELEGRAM_CHAT_ID`. Desktop delivery uses `notify-send` on Linux and
+`osascript` on macOS.
