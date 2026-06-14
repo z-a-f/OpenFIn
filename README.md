@@ -3,8 +3,6 @@
 OpenFin is a local-first founder helper CLI for keeping project memory, tasks,
 captures, and AI context packs in plain text.
 
-Phase 1 follows `founder-cli-spec.md`: Markdown and YAML are canonical,
-commands parse files on each run, and the base CLI makes no API calls.
 
 ## Development
 
